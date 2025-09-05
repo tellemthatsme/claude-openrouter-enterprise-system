@@ -1,0 +1,18 @@
+# Claude Code + OpenRouter Enterprise System Dependencies
+# Python packages required for the system to function
+
+requests>=2.31.0
+urllib3>=2.0.0
+certifi>=2023.7.22
+
+# Optional packages for enhanced functionality
+psutil>=5.9.0        # System monitoring
+colorama>=0.4.6      # Colored terminal output  
+python-dotenv>=1.0.0 # Environment variable management
+rich>=13.5.0         # Rich terminal formatting
+
+# Development and testing
+pytest>=7.4.0        # Testing framework
+pytest-cov>=4.1.0    # Coverage reporting
+black>=23.7.0        # Code formatting
+flake8>=6.0.0        # Linting
