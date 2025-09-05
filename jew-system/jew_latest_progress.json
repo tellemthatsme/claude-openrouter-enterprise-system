@@ -1,0 +1,12 @@
+{
+  "jew_progress_export": {
+    "export_timestamp": "2025-09-02T07:46:33.773138",
+    "export_type": "progress",
+    "progress": {
+      "deployed_agents": 222,
+      "total_agents": 222,
+      "progress_percentage": 100.0
+    },
+    "operational_cost": 0.0
+  }
+}
