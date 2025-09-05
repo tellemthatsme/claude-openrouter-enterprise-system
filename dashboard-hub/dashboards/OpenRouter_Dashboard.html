@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenRouter Enterprise Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online {
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+        }
+
+        .status-offline {
+            background: #ff4444;
+            box-shadow: 0 0 10px #ff4444;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #00ff41;
+        }
+
+        .metric-value.cost {
+            color: #ff6b6b;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .model-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #00d4ff;
+            transition: all 0.3s ease;
+        }
+
+        .model-card:hover {
+            background: rgba(0, 0, 0, 0.5);
+            border-left-color: #00ff41;
+        }
+
+        .model-name {
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 8px;
+        }
+
+        .model-status {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .model-free {
+            color: #00ff41;
+        }
+
+        .model-paid {
+            color: #ff9800;
+        }
+
+        .test-interface {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .test-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: white;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .test-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .test-button {
+            background: linear-gradient(45deg, #00d4ff, #0066cc);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .test-button:hover {
+            background: linear-gradient(45deg, #0066cc, #00d4ff);
+            transform: translateY(-2px);
+        }
+
+        .test-button:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .test-result {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #00ff41;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #00d4ff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .refresh-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .error-message {
+            background: rgba(255, 68, 68, 0.2);
+            border-left: 4px solid #ff4444;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .success-message {
+            background: rgba(0, 255, 65, 0.2);
+            border-left: 4px solid #00ff41;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .api-key-display {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .key-management {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .key-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid transparent;
+        }
+
+        .key-active {
+            border-left-color: #00ff41;
+            background: rgba(0, 255, 65, 0.1);
+        }
+
+        .key-inactive {
+            border-left-color: #ff9800;
+            background: rgba(255, 152, 0, 0.1);
+        }
+
+        .key-error {
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .key-rate-limited {
+            border-left-color: #ff9800;
+            background: rgba(255, 152, 0, 0.1);
+        }
+
+        .key-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            flex: 1;
+        }
+
+        .key-status {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-left: 15px;
+        }
+
+        .key-controls {
+            display: flex;
+            gap: 10px;
+            margin-left: 15px;
+        }
+
+        .key-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .key-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .key-button.primary {
+            background: linear-gradient(45deg, #00d4ff, #0066cc);
+            border: none;
+        }
+
+        .rotation-controls {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rotation-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #00d4ff;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(30px);
+        }
+
+        .model-picker {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .model-filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .filter-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .filter-button.active {
+            background: linear-gradient(45deg, #00d4ff, #0066cc);
+            border: none;
+        }
+
+        .model-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .model-option {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .model-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+
+        .model-option.selected {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .model-option.free {
+            border-left: 4px solid #00ff41;
+        }
+
+        .model-option.paid {
+            border-left: 4px solid #ff9800;
+        }
+
+        .model-name {
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .model-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .model-price {
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .model-price.free {
+            color: #00ff41;
+        }
+
+        .model-price.paid {
+            color: #ff9800;
+        }
+
+        .model-description {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .selected-model-info {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #00d4ff;
+            margin-top: 20px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: white;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .search-box::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .quick-picks {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .quick-pick {
+            background: linear-gradient(45deg, #00d4ff, #0066cc);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .quick-pick:hover {
+            background: linear-gradient(45deg, #0066cc, #00d4ff);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 OpenRouter Enterprise Analytics Dashboard</h1>
+        <p>Real-time monitoring and analytics for OpenRouter API integration</p>
+        <span id="connectionStatus" class="status-indicator status-offline"></span>
+        <span id="statusText">Initializing...</span>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- API Keys Management Card -->
+        <div class="card">
+            <h2>🔑 API Keys Management & Rotation</h2>
+            <div class="metric">
+                <span class="metric-label">Active Keys</span>
+                <span class="metric-value" id="activeKeysCount">2</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Current Key</span>
+                <span class="metric-value" id="currentKeyStatus">Primary</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Combined Balance</span>
+                <span class="metric-value cost" id="combinedBalance">$0.00</span>
+            </div>
+            
+            <div class="key-management">
+                <h3 style="margin-bottom: 15px; color: #00d4ff;">🔐 API Keys</h3>
+                <div id="keysList">
+                    <!-- Keys will be populated here -->
+                </div>
+            </div>
+
+            <div class="rotation-controls">
+                <div class="rotation-toggle">
+                    <span>Auto-Rotation:</span>
+                    <div class="toggle-switch" id="rotationToggle" onclick="toggleRotation()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                    <span id="rotationStatus">Disabled</span>
+                </div>
+                <button class="key-button primary" onclick="testAllKeys()">🧪 Test All Keys</button>
+            </div>
+        </div>
+
+        <!-- Usage Analytics Card -->
+        <div class="card">
+            <h2>📊 Usage Analytics</h2>
+            <div class="metric">
+                <span class="metric-label">Session Tokens</span>
+                <span class="metric-value" id="sessionTokens">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Total Requests</span>
+                <span class="metric-value" id="totalRequests">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Success Rate</span>
+                <span class="metric-value" id="successRate">100%</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Session Cost</span>
+                <span class="metric-value cost" id="sessionCost">$0.00</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="usageChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Model Picker Card -->
+        <div class="card">
+            <h2>🤖 Model Selection & Management</h2>
+            <button class="refresh-button" onclick="loadModels()">🔄 Refresh Models</button>
+            
+            <div class="model-picker">
+                <h3 style="color: #00d4ff; margin-bottom: 15px;">🎯 Choose Your Model</h3>
+                
+                <input type="text" class="search-box" id="modelSearch" placeholder="Search models..." onkeyup="filterModels()">
+                
+                <div class="quick-picks">
+                    <button class="quick-pick" onclick="selectQuickModel('openai/gpt-oss-20b:free')">GPT OSS 20B</button>
+                    <button class="quick-pick" onclick="selectQuickModel('z-ai/glm-4.5-air:free')">GLM 4.5 Air</button>
+                    <button class="quick-pick" onclick="selectQuickModel('qwen/qwen3-coder:free')">Qwen3 Coder</button>
+                    <button class="quick-pick" onclick="selectQuickModel('google/gemini-2.5-flash-lite')">Gemini Flash</button>
+                </div>
+                
+                <div class="model-filters">
+                    <button class="filter-button active" id="filter-all" onclick="setFilter('all')">All Models</button>
+                    <button class="filter-button" id="filter-free" onclick="setFilter('free')">Free Only</button>
+                    <button class="filter-button" id="filter-coding" onclick="setFilter('coding')">Coding</button>
+                    <button class="filter-button" id="filter-chat" onclick="setFilter('chat')">Chat</button>
+                    <button class="filter-button" id="filter-reasoning" onclick="setFilter('reasoning')">Reasoning</button>
+                </div>
+                
+                <div class="model-selector" id="modelSelector">
+                    <div class="loading"></div>
+                </div>
+                
+                <div class="selected-model-info" id="selectedModelInfo" style="display: none;">
+                    <h4 style="color: #00d4ff; margin-bottom: 10px;">Selected Model:</h4>
+                    <div id="selectedModelDetails"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Testing Interface -->
+        <div class="card">
+            <h2>🧪 Live Model Testing</h2>
+            <select class="test-input" id="modelSelect">
+                <option value="">Select a model...</option>
+            </select>
+            <input type="text" class="test-input" id="testPrompt" placeholder="Enter test prompt..." value="Say hello in a creative way">
+            <button class="test-button" id="testButton" onclick="testModel()">Test Model</button>
+            <div id="testResults"></div>
+        </div>
+
+        <!-- Cost Tracking -->
+        <div class="card">
+            <h2>💰 Cost Tracking</h2>
+            <div class="metric">
+                <span class="metric-label">Today's Cost</span>
+                <span class="metric-value cost" id="todayCost">$0.00</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">This Month</span>
+                <span class="metric-value cost" id="monthCost">$0.70</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Free Models Used</span>
+                <span class="metric-value" id="freeModelUsage">100%</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="costChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Comprehensive Statistics -->
+        <div class="card">
+            <h2>📊 Comprehensive Statistics</h2>
+            <div class="metric">
+                <span class="metric-label">Total Requests Today</span>
+                <span class="metric-value" id="totalRequestsToday">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Successful Requests</span>
+                <span class="metric-value" id="successfulRequests">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Failed Requests</span>
+                <span class="metric-value cost" id="failedRequests">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Average Response Time</span>
+                <span class="metric-value" id="avgResponseTime">0ms</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Tokens Per Second</span>
+                <span class="metric-value" id="tokensPerSec">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Most Used Model</span>
+                <span class="metric-value" id="mostUsedModel">None</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Key Rotation Count</span>
+                <span class="metric-value" id="keyRotationCount">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Rate Limit Hits</span>
+                <span class="metric-value cost" id="rateLimitHits">0</span>
+            </div>
+        </div>
+
+        <!-- Model Performance Stats -->
+        <div class="card">
+            <h2>🤖 Model Performance Statistics</h2>
+            <div id="modelStats" class="model-grid">
+                <div style="text-align: center; opacity: 0.7;">No model usage data yet</div>
+            </div>
+        </div>
+
+        <!-- Usage History -->
+        <div class="card">
+            <h2>📈 Usage History & Trends</h2>
+            <div class="metric">
+                <span class="metric-label">Session Duration</span>
+                <span class="metric-value" id="sessionDuration">0m</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Requests This Hour</span>
+                <span class="metric-value" id="requestsThisHour">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Peak Requests/Min</span>
+                <span class="metric-value" id="peakRequestsPerMin">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Total Session Cost</span>
+                <span class="metric-value cost" id="totalSessionCost">$0.00</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="trendsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Multiple API Keys with Rate Limit Info
+        const API_KEYS = [
+            {
+                id: 'key1',
+                key: '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',
+                name: 'Primary Key (Paid)',
+                active: true,
+                status: 'unknown',
+                usage: 0.76,
+                lastUsed: null,
+                errorCount: 0,
+                tier: 'paid',
+                rateLimit: { requests: 40, interval: 10 },
+                priority: 1,
+                requestCount: 0,
+                lastReset: Date.now(),
+                throttleDelay: 0
+            },
+            {
+                id: 'key2', 
+                key: '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',
+                name: 'Backup Key (Free)',
+                active: true,
+                status: 'unknown',
+                usage: 0,
+                lastUsed: null,
+                errorCount: 0,
+                tier: 'free',
+                rateLimit: { requests: 10, interval: 10 },
+                priority: 2,
+                requestCount: 0,
+                lastReset: Date.now(),
+                throttleDelay: 1000 // 1 second delay for free tier
+            }
+        ];
+        
+        const BASE_URL = 'https://openrouter.ai/api/v1';
+        let currentKeyIndex = 0;
+        let rotationEnabled = false;
+        let rotationInterval = null;
+        
+        // Global variables - Enhanced Statistics
+        let sessionStats = {
+            tokens: 0,
+            requests: 0,
+            successful: 0,
+            failed: 0,
+            cost: 0,
+            startTime: Date.now(),
+            responseTimes: [],
+            keyRotations: 0,
+            rateLimitHits: 0,
+            modelUsage: {},
+            hourlyRequests: [],
+            peakRequestsPerMin: 0,
+            currentMinuteRequests: 0,
+            lastMinuteReset: Date.now()
+        };
+
+        let models = [];
+        let filteredModels = [];
+        let selectedModel = null;
+        let currentFilter = 'all';
+        let usageChart, costChart, trendsChart;
+
+        // Get current API key
+        function getCurrentApiKey() {
+            return API_KEYS[currentKeyIndex].key;
+        }
+
+        // Get best available key (prioritize by tier and rate limits)
+        function getBestAvailableKey() {
+            const activeKeys = API_KEYS.filter(key => 
+                key.active && 
+                key.status !== 'error' && 
+                !isRateLimited(key)
+            ).sort((a, b) => a.priority - b.priority); // Sort by priority (1 = highest)
+            
+            if (activeKeys.length === 0) {
+                // If all keys are rate limited, find the one that resets soonest
+                const waitingKeys = API_KEYS.filter(key => key.active && key.status !== 'error')
+                    .sort((a, b) => getTimeUntilReset(a) - getTimeUntilReset(b));
+                
+                if (waitingKeys.length > 0) {
+                    return waitingKeys[0];
+                }
+                
+                return API_KEYS[0]; // Ultimate fallback
+            }
+            
+            // Update current key index to match the best key
+            const bestKey = activeKeys[0];
+            const newIndex = API_KEYS.findIndex(k => k.id === bestKey.id);
+            
+            if (newIndex !== currentKeyIndex) {
+                trackKeyRotation();
+                currentKeyIndex = newIndex;
+            }
+            
+            return bestKey;
+        }
+
+        // Check if key is rate limited
+        function isRateLimited(key) {
+            const now = Date.now();
+            const timeSinceReset = now - key.lastReset;
+            
+            // Reset counter if interval has passed
+            if (timeSinceReset >= key.rateLimit.interval * 1000) {
+                key.requestCount = 0;
+                key.lastReset = now;
+                return false;
+            }
+            
+            return key.requestCount >= key.rateLimit.requests;
+        }
+
+        // Get time until rate limit resets
+        function getTimeUntilReset(key) {
+            const now = Date.now();
+            const timeSinceReset = now - key.lastReset;
+            const intervalMs = key.rateLimit.interval * 1000;
+            return Math.max(0, intervalMs - timeSinceReset);
+        }
+
+        // Track request for rate limiting
+        function trackRequest(key) {
+            const now = Date.now();
+            const timeSinceReset = now - key.lastReset;
+            
+            // Reset counter if interval has passed
+            if (timeSinceReset >= key.rateLimit.interval * 1000) {
+                key.requestCount = 1;
+                key.lastReset = now;
+            } else {
+                key.requestCount++;
+            }
+            
+            key.lastUsed = new Date();
+        }
+
+        // Make API request with smart rate limiting and failover
+        async function makeApiRequest(url, options = {}) {
+            let lastError;
+            const maxRetries = API_KEYS.length * 2; // Allow more retries for rate limit handling
+            
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                const bestKey = getBestAvailableKey();
+                
+                // Check if we need to wait due to throttling
+                if (bestKey.throttleDelay > 0 && bestKey.tier === 'free') {
+                    const timeSinceLastUse = bestKey.lastUsed ? 
+                        Date.now() - bestKey.lastUsed.getTime() : bestKey.throttleDelay;
+                    
+                    if (timeSinceLastUse < bestKey.throttleDelay) {
+                        const waitTime = bestKey.throttleDelay - timeSinceLastUse;
+                        console.log(`Throttling ${bestKey.name}: waiting ${waitTime}ms`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                    }
+                }
+
+                // Check rate limits before making request
+                if (isRateLimited(bestKey)) {
+                    const waitTime = getTimeUntilReset(bestKey);
+                    console.log(`Rate limited ${bestKey.name}: waiting ${waitTime}ms`);
+                    
+                    if (waitTime > 0 && waitTime < 15000) { // Wait up to 15 seconds
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        bestKey.requestCount = 0; // Reset after waiting
+                        bestKey.lastReset = Date.now();
+                    } else {
+                        // If wait time is too long, try next key
+                        updateKeyStatus(bestKey.id, 'rate_limited');
+                        continue;
+                    }
+                }
+
+                try {
+                    // Track the request before making it
+                    trackRequest(bestKey);
+                    
+                    const response = await fetch(url, {
+                        ...options,
+                        headers: {
+                            ...options.headers,
+                            'Authorization': `Bearer ${bestKey.key}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        bestKey.errorCount = 0;
+                        updateKeyStatus(bestKey.id, 'active');
+                        return response;
+                    } else if (response.status === 429) {
+                        // Rate limit hit - mark key as rate limited
+                        console.log(`Rate limit hit for ${bestKey.name}`);
+                        trackRateLimitHit();
+                        updateKeyStatus(bestKey.id, 'rate_limited');
+                        bestKey.requestCount = bestKey.rateLimit.requests; // Max out counter
+                        continue;
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    lastError = error;
+                    bestKey.errorCount++;
+                    
+                    if (error.message.includes('429') || error.message.includes('rate')) {
+                        updateKeyStatus(bestKey.id, 'rate_limited');
+                        bestKey.requestCount = bestKey.rateLimit.requests;
+                    } else if (bestKey.errorCount >= 3) {
+                        updateKeyStatus(bestKey.id, 'error');
+                    }
+                    
+                    continue;
+                }
+            }
+            
+            throw lastError || new Error('All API keys exhausted or rate limited');
+        }
+
+        // Update key status in UI
+        function updateKeyStatus(keyId, status) {
+            const key = API_KEYS.find(k => k.id === keyId);
+            if (key) {
+                key.status = status;
+                renderKeys();
+            }
+        }
+
+        // Toggle rotation
+        function toggleRotation() {
+            rotationEnabled = !rotationEnabled;
+            const toggle = document.getElementById('rotationToggle');
+            const status = document.getElementById('rotationStatus');
+            
+            if (rotationEnabled) {
+                toggle.classList.add('active');
+                status.textContent = 'Enabled';
+                // Rotate every 60 seconds
+                rotationInterval = setInterval(() => {
+                    if (rotationEnabled) {
+                        getNextAvailableKey();
+                        updateCurrentKeyStatus();
+                    }
+                }, 60000);
+            } else {
+                toggle.classList.remove('active');
+                status.textContent = 'Disabled';
+                if (rotationInterval) {
+                    clearInterval(rotationInterval);
+                    rotationInterval = null;
+                }
+            }
+        }
+
+        // Test all keys
+        async function testAllKeys() {
+            const results = [];
+            
+            for (let i = 0; i < API_KEYS.length; i++) {
+                const key = API_KEYS[i];
+                try {
+                    const response = await fetch(`${BASE_URL}/auth/key`, {
+                        headers: {
+                            'Authorization': `Bearer ${key.key}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        key.status = 'active';
+                        key.usage = data.data.usage || 0;
+                        results.push({ key: key.name, status: '✓ Working', usage: key.usage });
+                    } else {
+                        key.status = 'error';
+                        results.push({ key: key.name, status: '✗ Failed', usage: 0 });
+                    }
+                } catch (error) {
+                    key.status = 'error';
+                    results.push({ key: key.name, status: '✗ Error', usage: 0 });
+                }
+            }
+            
+            renderKeys();
+            updateCombinedMetrics();
+            
+            // Show results
+            alert(results.map(r => `${r.key}: ${r.status}`).join('\n'));
+        }
+
+        // Switch to specific key
+        function switchToKey(keyId) {
+            const keyIndex = API_KEYS.findIndex(k => k.id === keyId);
+            if (keyIndex !== -1) {
+                currentKeyIndex = keyIndex;
+                updateCurrentKeyStatus();
+                renderKeys();
+            }
+        }
+
+        // Render keys in UI
+        function renderKeys() {
+            const keysList = document.getElementById('keysList');
+            keysList.innerHTML = API_KEYS.map((key, index) => {
+                const isActive = index === currentKeyIndex;
+                const statusClass = key.status === 'active' ? 'key-active' : 
+                                  key.status === 'error' ? 'key-error' : 
+                                  key.status === 'rate_limited' ? 'key-rate-limited' : 'key-inactive';
+                const maskedKey = key.key.substring(0, 12) + '...' + key.key.slice(-4);
+                
+                // Rate limit info
+                const rateLimitText = `${key.rateLimit.requests} req/${key.rateLimit.interval}s`;
+                const currentRequests = key.requestCount || 0;
+                const rateLimitStatus = `${currentRequests}/${key.rateLimit.requests}`;
+                const resetTime = getTimeUntilReset(key);
+                const resetText = resetTime > 0 ? `Reset in ${Math.ceil(resetTime/1000)}s` : 'Ready';
+                
+                return `
+                    <div class="key-item ${statusClass}">
+                        <div class="key-text">
+                            <div><strong>${key.name}</strong> ${isActive ? '(Current)' : ''}</div>
+                            <div>${maskedKey}</div>
+                            <div style="font-size: 0.75rem; opacity: 0.8;">
+                                Usage: $${key.usage.toFixed(4)} | Errors: ${key.errorCount} | Priority: ${key.priority}
+                            </div>
+                            <div style="font-size: 0.75rem; opacity: 0.8;">
+                                Rate Limit: ${rateLimitStatus} (${rateLimitText}) | ${resetText}
+                            </div>
+                            <div style="font-size: 0.75rem; opacity: 0.8;">
+                                Last Used: ${key.lastUsed ? key.lastUsed.toLocaleTimeString() : 'Never'}
+                            </div>
+                        </div>
+                        <div class="key-status">${key.status.replace('_', ' ').toUpperCase()}</div>
+                        <div class="key-controls">
+                            <button class="key-button" onclick="switchToKey('${key.id}')">Use</button>
+                            <button class="key-button" onclick="toggleKeyActive('${key.id}')">${key.active ? 'Disable' : 'Enable'}</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle key active status
+        function toggleKeyActive(keyId) {
+            const key = API_KEYS.find(k => k.id === keyId);
+            if (key) {
+                key.active = !key.active;
+                renderKeys();
+            }
+        }
+
+        // Update current key status display
+        function updateCurrentKeyStatus() {
+            const currentKey = API_KEYS[currentKeyIndex];
+            document.getElementById('currentKeyStatus').textContent = currentKey.name;
+        }
+
+        // Update combined metrics
+        function updateCombinedMetrics() {
+            const activeKeys = API_KEYS.filter(k => k.active).length;
+            const combinedBalance = API_KEYS.reduce((sum, key) => sum + key.usage, 0);
+            
+            document.getElementById('activeKeysCount').textContent = activeKeys;
+            document.getElementById('combinedBalance').textContent = `$${combinedBalance.toFixed(4)}`;
+        }
+
+        // Initialize dashboard
+        async function initDashboard() {
+            updateStatus('Initializing dashboard...', 'offline');
+            
+            // Initialize UI
+            renderKeys();
+            updateCurrentKeyStatus();
+            
+            // Initialize charts
+            initCharts();
+            
+            // Load initial data
+            await Promise.all([
+                testAllKeys(),
+                loadModels(),
+                updateMetrics()
+            ]);
+            
+            // Load saved model preference
+            const savedModelId = localStorage.getItem('selectedModel');
+            if (savedModelId && models.length > 0) {
+                selectModel(savedModelId);
+            }
+            
+            updateStatus('Dashboard ready', 'online');
+            
+            // Start real-time updates
+            setInterval(updateMetrics, 30000); // Update every 30 seconds
+            setInterval(updateTimestamp, 1000); // Update timestamp every second
+        }
+
+        // Update connection status
+        function updateStatus(message, status) {
+            const statusElement = document.getElementById('connectionStatus');
+            const textElement = document.getElementById('statusText');
+            
+            statusElement.className = `status-indicator status-${status}`;
+            textElement.textContent = message;
+        }
+
+        // Check API status (now handled by testAllKeys)
+        async function checkApiStatus() {
+            // This is now handled by testAllKeys() function
+            return true;
+        }
+
+        // Load available models
+        async function loadModels() {
+            try {
+                const response = await makeApiRequest(`${BASE_URL}/models`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    models = data.data;
+                    
+                    displayModels(models);
+                    populateModelSelect(models);
+                } else {
+                    throw new Error('Failed to load models');
+                }
+            } catch (error) {
+                console.error('Models Error:', error);
+                document.getElementById('modelGrid').innerHTML = '<div class="error-message">Failed to load models</div>';
+            }
+        }
+
+        // Categorize model
+        function categorizeModel(model) {
+            const id = model.id.toLowerCase();
+            const name = model.name.toLowerCase();
+            const description = (model.description || '').toLowerCase();
+            
+            const categories = [];
+            
+            if (id.includes('coder') || id.includes('code') || name.includes('code') || description.includes('code')) {
+                categories.push('coding');
+            }
+            if (id.includes('chat') || id.includes('gpt') || id.includes('claude') || name.includes('chat')) {
+                categories.push('chat');
+            }
+            if (id.includes('reasoning') || id.includes('think') || description.includes('reason') || description.includes('think')) {
+                categories.push('reasoning');
+            }
+            
+            return categories.length > 0 ? categories : ['general'];
+        }
+
+        // Display models in new picker interface
+        function displayModels(modelsList) {
+            filteredModels = modelsList;
+            renderModelSelector(filteredModels);
+            populateModelSelect(filteredModels);
+        }
+
+        // Render model selector
+        function renderModelSelector(modelsList) {
+            const selector = document.getElementById('modelSelector');
+            
+            if (!modelsList || modelsList.length === 0) {
+                selector.innerHTML = '<div class="error-message">No models available</div>';
+                return;
+            }
+
+            selector.innerHTML = modelsList.map(model => {
+                const isFree = model.pricing.prompt === "0";
+                const price = isFree ? 'FREE' : `$${parseFloat(model.pricing.prompt).toFixed(6)}/1K tokens`;
+                const isSelected = selectedModel && selectedModel.id === model.id;
+                const categories = categorizeModel(model);
+                
+                return `
+                    <div class="model-option ${isFree ? 'free' : 'paid'} ${isSelected ? 'selected' : ''}" 
+                         onclick="selectModel('${model.id}')">
+                        <div class="model-name">${model.name}</div>
+                        <div class="model-id">${model.id}</div>
+                        <div class="model-price ${isFree ? 'free' : 'paid'}">${price}</div>
+                        <div class="model-description">
+                            ${(model.description || 'No description available').substring(0, 150)}${model.description && model.description.length > 150 ? '...' : ''}
+                        </div>
+                        <div style="font-size: 0.75rem; opacity: 0.6; margin-top: 8px;">
+                            Categories: ${categories.join(', ')} | Context: ${model.context_length?.toLocaleString() || 'Unknown'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Select model
+        function selectModel(modelId) {
+            selectedModel = models.find(m => m.id === modelId);
+            if (selectedModel) {
+                // Update UI
+                renderModelSelector(filteredModels);
+                showSelectedModelInfo();
+                
+                // Update test interface
+                const testSelect = document.getElementById('modelSelect');
+                testSelect.value = modelId;
+                
+                // Save preference
+                localStorage.setItem('selectedModel', modelId);
+            }
+        }
+
+        // Quick model selection
+        function selectQuickModel(modelId) {
+            const model = models.find(m => m.id === modelId);
+            if (model) {
+                selectModel(modelId);
+            } else {
+                alert(`Model ${modelId} not available`);
+            }
+        }
+
+        // Show selected model info
+        function showSelectedModelInfo() {
+            const infoDiv = document.getElementById('selectedModelInfo');
+            const detailsDiv = document.getElementById('selectedModelDetails');
+            
+            if (!selectedModel) {
+                infoDiv.style.display = 'none';
+                return;
+            }
+            
+            const isFree = selectedModel.pricing.prompt === "0";
+            const price = isFree ? 'FREE' : `$${parseFloat(selectedModel.pricing.prompt).toFixed(6)}/1K tokens`;
+            const categories = categorizeModel(selectedModel);
+            
+            detailsDiv.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div><strong>Name:</strong> ${selectedModel.name}</div>
+                    <div><strong>Price:</strong> <span class="${isFree ? 'model-free' : 'model-paid'}">${price}</span></div>
+                    <div><strong>Context:</strong> ${selectedModel.context_length?.toLocaleString() || 'Unknown'} tokens</div>
+                    <div><strong>Categories:</strong> ${categories.join(', ')}</div>
+                </div>
+                <div style="margin-top: 10px;"><strong>Description:</strong> ${selectedModel.description || 'No description available'}</div>
+                <div style="margin-top: 10px; font-family: 'Courier New', monospace; font-size: 0.85rem; opacity: 0.8;">
+                    <strong>Model ID:</strong> ${selectedModel.id}
+                </div>
+            `;
+            
+            infoDiv.style.display = 'block';
+        }
+
+        // Filter models
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            // Update filter buttons
+            document.querySelectorAll('.filter-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`filter-${filter}`).classList.add('active');
+            
+            applyFilters();
+        }
+
+        // Apply current filters
+        function applyFilters() {
+            let filtered = models;
+            const searchTerm = document.getElementById('modelSearch').value.toLowerCase();
+            
+            // Apply category filter
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(model => {
+                    const categories = categorizeModel(model);
+                    
+                    if (currentFilter === 'free') {
+                        return model.pricing.prompt === "0";
+                    }
+                    
+                    return categories.includes(currentFilter);
+                });
+            }
+            
+            // Apply search filter
+            if (searchTerm) {
+                filtered = filtered.filter(model => 
+                    model.name.toLowerCase().includes(searchTerm) ||
+                    model.id.toLowerCase().includes(searchTerm) ||
+                    (model.description || '').toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Sort: free models first, then by name
+            filtered.sort((a, b) => {
+                const aFree = a.pricing.prompt === "0" ? 0 : 1;
+                const bFree = b.pricing.prompt === "0" ? 0 : 1;
+                
+                if (aFree !== bFree) return aFree - bFree;
+                return a.name.localeCompare(b.name);
+            });
+            
+            filteredModels = filtered;
+            renderModelSelector(filteredModels);
+        }
+
+        // Filter models by search
+        function filterModels() {
+            applyFilters();
+        }
+
+        // Populate model select dropdown
+        function populateModelSelect(models) {
+            const select = document.getElementById('modelSelect');
+            const freeModels = models.filter(model => model.pricing.prompt === "0");
+            
+            select.innerHTML = '<option value="">Select a model...</option>' + 
+                freeModels.slice(0, 10).map(model => 
+                    `<option value="${model.id}">${model.name} (FREE)</option>`
+                ).join('');
+        }
+
+        // Test model functionality with enhanced tracking
+        async function testModel() {
+            const modelId = document.getElementById('modelSelect').value;
+            const prompt = document.getElementById('testPrompt').value;
+            const button = document.getElementById('testButton');
+            const results = document.getElementById('testResults');
+            
+            if (!modelId || !prompt) {
+                results.innerHTML = '<div class="error-message">Please select a model and enter a prompt</div>';
+                return;
+            }
+            
+            button.disabled = true;
+            button.innerHTML = '<span class="loading"></span> Testing...';
+            
+            // Start tracking
+            trackRequestStart(modelId, API_KEYS[currentKeyIndex].name);
+            const startTime = Date.now();
+            
+            try {
+                const response = await makeApiRequest(`${BASE_URL}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: modelId,
+                        messages: [{ role: 'user', content: prompt }],
+                        max_tokens: 150
+                    })
+                });
+                
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const content = data.choices[0]?.message?.content || 'No response';
+                    
+                    // Enhanced tracking
+                    trackRequestEnd(true, responseTime, data.usage?.total_tokens || 0, modelId, 0);
+                    updateSessionMetrics();
+                    
+                    results.innerHTML = `
+                        <div class="success-message">
+                            <strong>✓ Test Successful</strong><br>
+                            Response Time: ${responseTime}ms<br>
+                            Tokens Used: ${data.usage?.total_tokens || 0}<br>
+                            Using Key: ${API_KEYS[currentKeyIndex].name}<br>
+                            Model: ${modelId}
+                        </div>
+                        <div class="test-result">${content}</div>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                const responseTime = Date.now() - startTime;
+                trackRequestEnd(false, responseTime, 0, modelId, 0);
+                updateSessionMetrics();
+                
+                results.innerHTML = `<div class="error-message">Test failed: ${error.message}</div>`;
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'Test Model';
+            }
+        }
+
+        // Enhanced statistics tracking
+        function trackRequestStart(modelId, keyUsed) {
+            sessionStats.requests++;
+            
+            // Track per-minute requests
+            const now = Date.now();
+            if (now - sessionStats.lastMinuteReset > 60000) {
+                sessionStats.currentMinuteRequests = 1;
+                sessionStats.lastMinuteReset = now;
+            } else {
+                sessionStats.currentMinuteRequests++;
+            }
+            
+            if (sessionStats.currentMinuteRequests > sessionStats.peakRequestsPerMin) {
+                sessionStats.peakRequestsPerMin = sessionStats.currentMinuteRequests;
+            }
+            
+            // Track hourly requests
+            const hour = new Date().getHours();
+            if (!sessionStats.hourlyRequests[hour]) {
+                sessionStats.hourlyRequests[hour] = 0;
+            }
+            sessionStats.hourlyRequests[hour]++;
+            
+            // Track model usage
+            if (modelId) {
+                if (!sessionStats.modelUsage[modelId]) {
+                    sessionStats.modelUsage[modelId] = {
+                        requests: 0,
+                        successful: 0,
+                        failed: 0,
+                        totalTokens: 0,
+                        avgResponseTime: 0,
+                        responseTimes: []
+                    };
+                }
+                sessionStats.modelUsage[modelId].requests++;
+            }
+        }
+
+        function trackRequestEnd(success, responseTime, tokens, modelId, cost = 0) {
+            if (success) {
+                sessionStats.successful++;
+                if (modelId && sessionStats.modelUsage[modelId]) {
+                    sessionStats.modelUsage[modelId].successful++;
+                    sessionStats.modelUsage[modelId].totalTokens += tokens;
+                    sessionStats.modelUsage[modelId].responseTimes.push(responseTime);
+                    
+                    // Update average response time for model
+                    const times = sessionStats.modelUsage[modelId].responseTimes;
+                    sessionStats.modelUsage[modelId].avgResponseTime = 
+                        times.reduce((sum, time) => sum + time, 0) / times.length;
+                }
+            } else {
+                sessionStats.failed++;
+                if (modelId && sessionStats.modelUsage[modelId]) {
+                    sessionStats.modelUsage[modelId].failed++;
+                }
+            }
+            
+            sessionStats.tokens += tokens;
+            sessionStats.cost += cost;
+            sessionStats.responseTimes.push(responseTime);
+            
+            // Keep only last 100 response times for memory efficiency
+            if (sessionStats.responseTimes.length > 100) {
+                sessionStats.responseTimes.shift();
+            }
+        }
+
+        function trackKeyRotation() {
+            sessionStats.keyRotations++;
+        }
+
+        function trackRateLimitHit() {
+            sessionStats.rateLimitHits++;
+        }
+
+        // Update session metrics with comprehensive stats
+        function updateSessionMetrics() {
+            // Basic metrics
+            document.getElementById('sessionTokens').textContent = sessionStats.tokens.toLocaleString();
+            document.getElementById('totalRequests').textContent = sessionStats.requests;
+            document.getElementById('successRate').textContent = 
+                sessionStats.requests > 0 ? 
+                `${Math.round(sessionStats.successful / sessionStats.requests * 100)}%` : 
+                '100%';
+            document.getElementById('sessionCost').textContent = `$${sessionStats.cost.toFixed(4)}`;
+            
+            // Comprehensive stats
+            document.getElementById('totalRequestsToday').textContent = sessionStats.requests;
+            document.getElementById('successfulRequests').textContent = sessionStats.successful;
+            document.getElementById('failedRequests').textContent = sessionStats.failed;
+            document.getElementById('keyRotationCount').textContent = sessionStats.keyRotations;
+            document.getElementById('rateLimitHits').textContent = sessionStats.rateLimitHits;
+            
+            // Performance metrics
+            const avgResponseTime = sessionStats.responseTimes.length > 0 ?
+                Math.round(sessionStats.responseTimes.reduce((sum, time) => sum + time, 0) / sessionStats.responseTimes.length) :
+                0;
+            document.getElementById('avgResponseTime').textContent = `${avgResponseTime}ms`;
+            
+            const tokensPerSecond = sessionStats.responseTimes.length > 0 ?
+                Math.round(sessionStats.tokens / (sessionStats.responseTimes.reduce((sum, time) => sum + time, 0) / 1000)) :
+                0;
+            document.getElementById('tokensPerSec').textContent = tokensPerSecond;
+            
+            // Session info
+            const sessionDuration = Math.round((Date.now() - sessionStats.startTime) / 1000 / 60);
+            document.getElementById('sessionDuration').textContent = `${sessionDuration}m`;
+            
+            const currentHour = new Date().getHours();
+            document.getElementById('requestsThisHour').textContent = sessionStats.hourlyRequests[currentHour] || 0;
+            document.getElementById('peakRequestsPerMin').textContent = sessionStats.peakRequestsPerMin;
+            document.getElementById('totalSessionCost').textContent = `$${sessionStats.cost.toFixed(4)}`;
+            
+            // Most used model
+            const mostUsedModel = Object.keys(sessionStats.modelUsage).reduce((max, model) => {
+                return sessionStats.modelUsage[model].requests > (sessionStats.modelUsage[max]?.requests || 0) ? model : max;
+            }, '');
+            document.getElementById('mostUsedModel').textContent = 
+                mostUsedModel ? mostUsedModel.split('/').pop() : 'None';
+            
+            // Update model statistics
+            updateModelStats();
+            
+            // Update charts
+            updateCharts();
+        }
+
+        // Update model statistics display
+        function updateModelStats() {
+            const modelStats = document.getElementById('modelStats');
+            const usage = Object.entries(sessionStats.modelUsage);
+            
+            if (usage.length === 0) {
+                modelStats.innerHTML = '<div style="text-align: center; opacity: 0.7;">No model usage data yet</div>';
+                return;
+            }
+            
+            modelStats.innerHTML = usage.map(([modelId, stats]) => {
+                const successRate = stats.requests > 0 ? Math.round(stats.successful / stats.requests * 100) : 0;
+                const modelName = modelId.split('/').pop();
+                
+                return `
+                    <div class="model-card">
+                        <div class="model-name">${modelName}</div>
+                        <div style="font-size: 0.85rem; margin: 5px 0;">
+                            <div>Requests: ${stats.requests}</div>
+                            <div>Success: ${successRate}%</div>
+                            <div>Tokens: ${stats.totalTokens.toLocaleString()}</div>
+                            <div>Avg Time: ${Math.round(stats.avgResponseTime)}ms</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Initialize charts
+        function initCharts() {
+            // Usage Chart
+            const usageCtx = document.getElementById('usageChart').getContext('2d');
+            usageChart = new Chart(usageCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Tokens Used',
+                        data: [],
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: 'white' } }
+                    },
+                    scales: {
+                        x: { ticks: { color: 'white' } },
+                        y: { ticks: { color: 'white' } }
+                    }
+                }
+            });
+            
+            // Cost Chart
+            const costCtx = document.getElementById('costChart').getContext('2d');
+            costChart = new Chart(costCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Free Models', 'Paid Models'],
+                    datasets: [{
+                        data: [100, 0],
+                        backgroundColor: ['#00ff41', '#ff6b6b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: 'white' } }
+                    }
+                }
+            });
+
+            // Trends Chart
+            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+            trendsChart = new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                    datasets: [{
+                        label: 'Requests per Hour',
+                        data: new Array(24).fill(0),
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: 'white' } }
+                    },
+                    scales: {
+                        x: { ticks: { color: 'white' } },
+                        y: { ticks: { color: 'white' } }
+                    }
+                }
+            });
+        }
+
+        // Update charts with new data
+        function updateCharts() {
+            const now = new Date().toLocaleTimeString();
+            
+            // Update usage chart
+            usageChart.data.labels.push(now);
+            usageChart.data.datasets[0].data.push(sessionStats.tokens);
+            
+            if (usageChart.data.labels.length > 10) {
+                usageChart.data.labels.shift();
+                usageChart.data.datasets[0].data.shift();
+            }
+            
+            usageChart.update();
+
+            // Update trends chart with hourly data
+            const hourlyData = new Array(24).fill(0);
+            sessionStats.hourlyRequests.forEach((count, hour) => {
+                if (count) hourlyData[hour] = count;
+            });
+            
+            trendsChart.data.datasets[0].data = hourlyData;
+            trendsChart.update();
+
+            // Update cost chart based on model usage
+            const freeRequests = Object.values(sessionStats.modelUsage).reduce((sum, stats) => {
+                const modelId = Object.keys(sessionStats.modelUsage).find(id => sessionStats.modelUsage[id] === stats);
+                const model = models.find(m => m.id === modelId);
+                return sum + (model && model.pricing.prompt === "0" ? stats.requests : 0);
+            }, 0);
+            
+            const paidRequests = sessionStats.requests - freeRequests;
+            
+            costChart.data.datasets[0].data = [
+                freeRequests || 1, // Avoid 0 division
+                paidRequests || 0
+            ];
+            costChart.update();
+        }
+
+        // Update general metrics
+        function updateMetrics() {
+            // This would typically fetch real-time data from your API
+            document.getElementById('avgResponseTime').textContent = `~${(Math.random() * 3 + 1).toFixed(1)}s`;
+            document.getElementById('tokensPerSec').textContent = `~${(Math.random() * 30 + 20).toFixed(1)}`;
+            document.getElementById('uptime').textContent = '99.9%';
+        }
+
+        // Update timestamp
+        function updateTimestamp() {
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>

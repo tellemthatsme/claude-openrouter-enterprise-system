@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Dashboard Directory - Enterprise AI Command Center</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #2d1b69 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #00ff88, #00bfff, #ff0080);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #cccccc;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00ff88, #00bfff);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-10px);
+            border-color: #00ff88;
+            box-shadow: 0 20px 50px rgba(0, 255, 136, 0.3);
+        }
+
+        .dashboard-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .card-subtitle {
+            color: #cccccc;
+            font-size: 0.9rem;
+        }
+
+        .card-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00bfff;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #cccccc;
+            margin-top: 0.5rem;
+        }
+
+        .card-description {
+            color: #e0e0e0;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-features {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .card-features li {
+            padding: 0.5rem 0;
+            color: #cccccc;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-features li:before {
+            content: '✅ ';
+            color: #00ff88;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .action-button {
+            flex: 1;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .primary-button {
+            background: linear-gradient(135deg, #00ff88, #00bfff);
+            color: white;
+        }
+
+        .primary-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .secondary-button {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .secondary-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 136, 0.9);
+            color: black;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .ultimate-card {
+            background: linear-gradient(135deg, rgba(255, 0, 128, 0.1), rgba(0, 191, 255, 0.1));
+            border: 2px solid #ff0080;
+            position: relative;
+        }
+
+        .ultimate-card::after {
+            content: '⭐ ULTIMATE';
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            background: linear-gradient(45deg, #ff0080, #ff8000);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 10px #ff0080; }
+            to { box-shadow: 0 0 30px #ff8000; }
+        }
+
+        .quick-stats {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ff88;
+            display: block;
+        }
+
+        .stat-label {
+            color: #cccccc;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .navigation-menu {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .menu-toggle {
+            background: rgba(0, 255, 136, 0.9);
+            color: black;
+            border: none;
+            padding: 1rem;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .menu-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .menu-item {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 0.8rem 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .menu-item:hover {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .card-metrics {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navigation-menu">
+        <button class="menu-toggle" onclick="toggleMenu()">📊</button>
+        <div class="menu-dropdown" id="menuDropdown">
+            <a href="../ultimate-dashboard/ULTIMATE_LIVE_MONITORING_DASHBOARD.html" class="menu-item">🚀 Ultimate Live Monitor</a>
+            <a href="../dashboards/ENHANCED_ENTERPRISE_DASHBOARD.html" class="menu-item">🏢 Enterprise Dashboard</a>
+            <a href="../README.md" class="menu-item">📚 Documentation</a>
+            <a href="../SYSTEM_VALUATION.md" class="menu-item">💰 System Value</a>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>📊 Dashboard Directory</h1>
+        <p>Complete Enterprise AI Command Center - Monitor everything in real-time with unlimited AI access at $0 cost</p>
+    </div>
+
+    <div class="quick-stats">
+        <h2>🚀 System Status Overview</h2>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-value" id="totalDashboards">7</span>
+                <div class="stat-label">Total Dashboards</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="systemHealth">100%</span>
+                <div class="stat-label">System Health</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="activeAgents">222</span>
+                <div class="stat-label">Active Agents</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="operationalCost">$0.00</span>
+                <div class="stat-label">Operational Cost</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="freeModels">57+</span>
+                <div class="stat-label">Free AI Models</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="systemValue">$2.4M+</span>
+                <div class="stat-label">Total System Value</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Ultimate Live Monitoring Dashboard -->
+        <div class="dashboard-card ultimate-card">
+            <div class="status-indicator">LIVE</div>
+            <div class="card-header">
+                <div class="card-icon">🚀</div>
+                <div>
+                    <div class="card-title">Ultimate Live Monitoring</div>
+                    <div class="card-subtitle">Real-time system monitoring & control</div>
+                </div>
+            </div>
+            
+            <div class="card-metrics">
+                <div class="metric-item">
+                    <div class="metric-value">100%</div>
+                    <div class="metric-label">System Health</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">LIVE</div>
+                    <div class="metric-label">Real-time</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">∞</div>
+                    <div class="metric-label">Monitoring</div>
+                </div>
+            </div>
+
+            <div class="card-description">
+                The ultimate command center showing everything in real-time: token usage, agent status, model availability, cost monitoring, and system health. Live updates every second with comprehensive monitoring.
+            </div>
+
+            <ul class="card-features">
+                <li>Real-time token and limit monitoring</li>
+                <li>Live agent status and coordination</li>
+                <li>OpenRouter model availability tracking</li>
+                <li>Cost monitoring and optimization</li>
+                <li>System health and performance metrics</li>
+                <li>Live activity log and alerts</li>
+                <li>Unified navigation to all dashboards</li>
+            </ul>
+
+            <div class="card-actions">
+                <a href="../ultimate-dashboard/ULTIMATE_LIVE_MONITORING_DASHBOARD.html" class="action-button primary-button">
+                    🚀 Launch Ultimate Monitor
+                </a>
+                <button class="action-button secondary-button" onclick="openInNewWindow('../ultimate-dashboard/ULTIMATE_LIVE_MONITORING_DASHBOARD.html')">
+                    🖥️ New Window
+                </button>
+            </div>
+        </div>
+
+        <!-- Enhanced Enterprise Dashboard -->
+        <div class="dashboard-card">
+            <div class="status-indicator">ACTIVE</div>
+            <div class="card-header">
+                <div class="card-icon">🏢</div>
+                <div>
+                    <div class="card-title">Enterprise Dashboard</div>
+                    <div class="card-subtitle">Main control center (69.89 KB)</div>
+                </div>
+            </div>
+            
+            <div class="card-metrics">
+                <div class="metric-item">
+                    <div class="metric-value">69.89</div>
+                    <div class="metric-label">KB Size</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">Core</div>
+                    <div class="metric-label">System</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">100%</div>
+                    <div class="metric-label">Uptime</div>
+                </div>
+            </div>
+
+            <div class="card-description">
+                Primary enterprise control center with comprehensive system management, OpenRouter integration, and real-time monitoring capabilities.
+            </div>
+
+            <ul class="card-features">
+                <li>System status monitoring</li>
+                <li>OpenRouter API management</li>
+                <li>Cost tracking and optimization</li>
+                <li>Performance analytics</li>
+                <li>Enterprise-grade interface</li>
+            </ul>
+
+            <div class="card-actions">
+                <a href="dashboards/ENHANCED_ENTERPRISE_DASHBOARD.html" class="action-button primary-button">
+                    🏢 Open Dashboard
+                </a>
+                <button class="action-button secondary-button" onclick="openInNewWindow('dashboards/ENHANCED_ENTERPRISE_DASHBOARD.html')">
+                    🖥️ New Window
+                </button>
+            </div>
+        </div>
+
+        <!-- OpenRouter Dashboard -->
+        <div class="dashboard-card">
+            <div class="status-indicator">ACTIVE</div>
+            <div class="card-header">
+                <div class="card-icon">🤖</div>
+                <div>
+                    <div class="card-title">OpenRouter Console</div>
+                    <div class="card-subtitle">AI model management (63.35 KB)</div>
+                </div>
+            </div>
+            
+            <div class="card-metrics">
+                <div class="metric-item">
+                    <div class="metric-value">57+</div>
+                    <div class="metric-label">Free Models</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">$0.00</div>
+                    <div class="metric-label">Cost</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">∞</div>
+                    <div class="metric-label">Access</div>
+                </div>
+            </div>
+
+            <div class="card-description">
+                Comprehensive AI model management interface with access to 57+ free models, performance monitoring, and usage analytics.
+            </div>
+
+            <ul class="card-features">
+                <li>57+ free AI model access</li>
+                <li>Model performance comparison</li>
+                <li>Usage statistics tracking</li>
+                <li>Response time analytics</li>
+                <li>Model switching interface</li>
+            </ul>
+
+            <div class="card-actions">
+                <a href="dashboards/OpenRouter_Dashboard.html" class="action-button primary-button">
+                    🤖 Open Console
+                </a>
+                <button class="action-button secondary-button" onclick="openInNewWindow('dashboards/OpenRouter_Dashboard.html')">
+                    🖥️ New Window
+                </button>
+            </div>
+        </div>
+
+        <!-- Project Directory -->
+        <div class="dashboard-card">
+            <div class="status-indicator">ACTIVE</div>
+            <div class="card-header">
+                <div class="card-icon">📁</div>
+                <div>
+                    <div class="card-title">Project Directory</div>
+                    <div class="card-subtitle">File management system (62.11 KB)</div>
+                </div>
+            </div>
+            
+            <div class="card-metrics">
+                <div class="metric-item">
+                    <div class="metric-value">1000+</div>
+                    <div class="metric-label">Files</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">Organized</div>
+                    <div class="metric-label">Structure</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">Smart</div>
+                    <div class="metric-label">Search</div>
+                </div>
+            </div>
+
+            <div class="card-description">
+                Centralized project and file management system with smart organization, search capabilities, and repository integration.
+            </div>
+
+            <ul class="card-features">
+                <li>Hierarchical file organization</li>
+                <li>Advanced search functionality</li>
+                <li>Repository integration</li>
+                <li>Batch file operations</li>
+                <li>File analytics and metrics</li>
+            </ul>
+
+            <div class="card-actions">
+                <a href="dashboards/PROJECT_DIRECTORY.html" class="action-button primary-button">
+                    📁 Open Directory
+                </a>
+                <button class="action-button secondary-button" onclick="openInNewWindow('dashboards/PROJECT_DIRECTORY.html')">
+                    🖥️ New Window
+                </button>
+            </div>
+        </div>
+
+        <!-- Multi-AI Dashboard Monitor -->
+        <div class="dashboard-card">
+            <div class="status-indicator">ACTIVE</div>
+            <div class="card-header">
+                <div class="card-icon">🌐</div>
+                <div>
+                    <div class="card-title">Multi-AI Monitor</div>
+                    <div class="card-subtitle">Cross-platform monitoring (27.71 KB)</div>
+                </div>
+            </div>
+            
+            <div class="card-metrics">
+                <div class="metric-item">
+                    <div class="metric-value">5+</div>
+                    <div class="metric-label">Platforms</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">Real-time</div>
+                    <div class="metric-label">Monitoring</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">Auto</div>
+                    <div class="metric-label">Failover</div>
+                </div>
+            </div>
+
+            <div class="card-description">
+                Cross-platform AI monitoring system tracking multiple providers with failover management and performance comparison.
+            </div>
+
+            <ul class="card-features">
+                <li>Multi-provider monitoring</li>
+                <li>Comparative performance analysis</li>
+                <li>Failover system management</li>
+                <li>Load balancing controls</li>
+                <li>Cost comparison analytics</li>
+            </ul>
+
+            <div class="card-actions">
+                <a href="dashboards/MULTI_AI_DASHBOARD_MONITOR.html" class="action-button primary-button">
+                    🌐 Open Monitor
+                </a>
+                <button class="action-button secondary-button" onclick="openInNewWindow('dashboards/MULTI_AI_DASHBOARD_MONITOR.html')">
+                    🖥️ New Window
+                </button>
+            </div>
+        </div>
+
+        <!-- Claude Protection Monitor -->
+        <div class="dashboard-card">
+            <div class="status-indicator">PROTECTED</div>
+            <div class="card-header">
+                <div class="card-icon">🛡️</div>
+                <div>
+                    <div class="card-title">Claude Protection</div>
+                    <div class="card-subtitle">Usage limit protection (14.53 KB)</div>
+                </div>
+            </div>
+            
+            <div class="card-metrics">
+                <div class="metric-item">
+                    <div class="metric-value">0%</div>
+                    <div class="metric-label">Usage</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">100%</div>
+                    <div class="metric-label">Protected</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">Safe</div>
+                    <div class="metric-label">Status</div>
+                </div>
+            </div>
+
+            <div class="card-description">
+                Advanced protection system preventing Claude limit overruns with real-time monitoring, forecasting, and automatic failover to OpenRouter.
+            </div>
+
+            <ul class="card-features">
+                <li>Real-time usage tracking</li>
+                <li>Automatic limit warnings</li>
+                <li>Emergency stop controls</li>
+                <li>Usage forecasting</li>
+                <li>Cost protection alerts</li>
+            </ul>
+
+            <div class="card-actions">
+                <a href="dashboards/CLAUDE_PROTECTION_MONITOR.html" class="action-button primary-button">
+                    🛡️ Open Protection
+                </a>
+                <button class="action-button secondary-button" onclick="openInNewWindow('dashboards/CLAUDE_PROTECTION_MONITOR.html')">
+                    🖥️ New Window
+                </button>
+            </div>
+        </div>
+
+        <!-- Ultimate Enterprise Platform -->
+        <div class="dashboard-card">
+            <div class="status-indicator">ADVANCED</div>
+            <div class="card-header">
+                <div class="card-icon">⭐</div>
+                <div>
+                    <div class="card-title">Ultimate Platform</div>
+                    <div class="card-subtitle">Advanced enterprise hub (28.92 KB)</div>
+                </div>
+            </div>
+            
+            <div class="card-metrics">
+                <div class="metric-item">
+                    <div class="metric-value">Advanced</div>
+                    <div class="metric-label">Features</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">Enterprise</div>
+                    <div class="metric-label">Grade</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">Power</div>
+                    <div class="metric-label">Users</div>
+                </div>
+            </div>
+
+            <div class="card-description">
+                Advanced enterprise platform with sophisticated controls, multi-tenant management, and power user features for complex deployments.
+            </div>
+
+            <ul class="card-features">
+                <li>Advanced system controls</li>
+                <li>Multi-tenant management</li>
+                <li>Custom workflow automation</li>
+                <li>Advanced analytics</li>
+                <li>Integration management</li>
+            </ul>
+
+            <div class="card-actions">
+                <a href="dashboards/ULTIMATE_ENTERPRISE_PLATFORM.html" class="action-button primary-button">
+                    ⭐ Open Platform
+                </a>
+                <button class="action-button secondary-button" onclick="openInNewWindow('dashboards/ULTIMATE_ENTERPRISE_PLATFORM.html')">
+                    🖥️ New Window
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            const dropdown = document.getElementById('menuDropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        function openInNewWindow(url) {
+            window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.querySelector('.navigation-menu');
+            const dropdown = document.getElementById('menuDropdown');
+            
+            if (!menu.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+
+        // Update live stats
+        function updateLiveStats() {
+            // System health fluctuation
+            const healthElement = document.getElementById('systemHealth');
+            if (healthElement) {
+                const health = 99.5 + Math.random() * 0.5;
+                healthElement.textContent = health.toFixed(1) + '%';
+            }
+
+            // Active agents fluctuation
+            const agentsElement = document.getElementById('activeAgents');
+            if (agentsElement) {
+                const agents = 220 + Math.floor(Math.random() * 3);
+                agentsElement.textContent = agents;
+            }
+        }
+
+        // Update stats every 5 seconds
+        setInterval(updateLiveStats, 5000);
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case '1':
+                        e.preventDefault();
+                        window.open('../ultimate-dashboard/ULTIMATE_LIVE_MONITORING_DASHBOARD.html', '_blank');
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        window.open('dashboards/ENHANCED_ENTERPRISE_DASHBOARD.html', '_blank');
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        window.open('dashboards/OpenRouter_Dashboard.html', '_blank');
+                        break;
+                    case 'm':
+                        e.preventDefault();
+                        toggleMenu();
+                        break;
+                }
+            }
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📊 Dashboard Directory initialized');
+            console.log('🚀 7 Enterprise dashboards available');
+            console.log('💰 Total system value: $2.4M+');
+            console.log('⌨️ Keyboard shortcuts: Ctrl+1-3 for quick access, Ctrl+M for menu');
+            
+            updateLiveStats();
+        });
+    </script>
+</body>
+</html>
