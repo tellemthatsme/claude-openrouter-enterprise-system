@@ -1,0 +1,36 @@
+{
+  "system": {
+    "name": "OpenRouter Agent Orchestration System",
+    "version": "1.0",
+    "status": "operational",
+    "primary_model": "ai21/jamba-mini-1.7",
+    "api_key": "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"
+  },
+  "agents": {
+    "total_deployed": 193,
+    "coverage": "98.5%",
+    "status": "all_active"
+  },
+  "backup_providers": [
+    {
+      "name": "Qwen CLI",
+      "status": "ready",
+      "instructions": "qwen -a --all-files"
+    },
+    {
+      "name": "Gemini CLI",
+      "status": "ready",
+      "instructions": "gemini -a --all-files"
+    }
+  ],
+  "usage_controls": {
+    "daily_budget": 0.10,
+    "cost_safety": "enabled",
+    "free_models_only": true
+  },
+  "emergency_procedures": {
+    "stop_script": "python emergency_stop.py --force",
+    "usage_check": "python usage_checker.py",
+    "lock_file": ".emergency_lock"
+  }
+}

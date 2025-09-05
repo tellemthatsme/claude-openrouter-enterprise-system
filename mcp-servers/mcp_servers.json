@@ -1,0 +1,56 @@
+{
+  "mcpServers": {
+    "memory-persistence": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\brend\\repos\\mcp_memory_persistence_server.py"
+      ],
+      "env": {
+        "OPENROUTER_API_KEY": "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",
+        "CLAUDE_PROTECTION": "enabled"
+      }
+    },
+    "ultimate-deepseek": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\brend\\repos\\ultimate_mcp_deepseek_server.py"
+      ],
+      "env": {
+        "OPENROUTER_API_KEY": "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",
+        "CLAUDE_PROTECTION": "enabled"
+      }
+    },
+    "enhanced-claude-code": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\brend\\repos\\enhanced_claude_code_mcp_server.py"
+      ],
+      "env": {
+        "OPENROUTER_API_KEY": "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",
+        "CLAUDE_PROTECTION": "enabled"
+      }
+    },
+    "filesystem": {
+      "command": "python",
+      "args": [
+        "-m",
+        "mcp",
+        "install",
+        "@modelcontextprotocol/server-filesystem",
+        "--",
+        "C:\\Users\\brend"
+      ],
+      "env": {}
+    },
+    "github": {
+      "command": "python",
+      "args": [
+        "-m",
+        "mcp",
+        "install",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {}
+    }
+  }
+}
